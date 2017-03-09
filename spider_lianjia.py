@@ -3,29 +3,38 @@ import xlwt
 import xlrd
 from bs4 import BeautifulSoup
 from urllib import request
+from urllib import error
 import re
 
 #url = 'http://bj.lianjia.com/chengjiao/101100989652.html'
-url = 'http://sz.lianjia.com/ershoufang/'
-def get_house_urls():
+origin_url = 'http://sz.lianjia.com/ershoufang/'
+def get_house_urls(url):
+    url = origin_url + url
+    print (url)
     req = request.urlopen(url)
     src_code = req.read()
-
     soup = BeautifulSoup(src_code, 'lxml')
-
+    print(soup)
     tags = soup.find_all('div', {'class':'item'})
     url_list = []
+
     for tag in tags:
         #print(tag)
         url_list.append(tag.a['href'])
+    print (" get_house_urls size " + str(len(url_list)))
     return url_list
 
 #print(soup.find('div', {'data-houseid':'101101106545'}))
 #print(soup.find('a', {'href':'http://bj.lianjia.com/zufang/'}))
 
 def get_house_info(url):
-    req = request.urlopen(url)
-    src_code = req.read()
+    try:
+        req = request.urlopen(url)
+    except error.HTTPError as e:
+        print (e.code)
+        return e.code
+    else:
+        src_code = req.read()
     soup = BeautifulSoup(src_code, 'lxml')
     house_info = []
     # get price info
@@ -36,12 +45,12 @@ def get_house_info(url):
             if "total" in tmp.attrs["class"]:
                 # 总价
                 total_price = tmp.get_text()
-                print ('total price :' + total_price + '万')
+                #print ('total price :' + total_price + '万')
                 house_info.append(total_price)
             if "unitPriceValue" in tmp.attrs["class"]:
                 # 单价
                 unit_price = tmp.get_text()
-                print('unit price :' + unit_price)
+                #print('unit price :' + unit_price)
                 house_info.append(unit_price)
             if "label" in tmp.attrs["class"]:
                 if str(tmp.get_text()) == "挂牌时间":
@@ -67,21 +76,27 @@ def write_to_excel(data):
 if __name__ == '__main__':
     wb = xlwt.Workbook()
     ws = wb.add_sheet("Test Sheet")
-    house_urls = get_house_urls()
-    print ("ready to get " + str(len(house_urls)) + " houses info....")
-    for i, url in enumerate(house_urls):
-        print("getting info from  " + url + " ....")
-        data_ary = get_house_info(url)
-        data_ary.append(url)
-        print(i, " writing data " + data_ary[0] + " to excel......")
-        for j in range(0, len(data_ary)):
-            ws.write(i, j, data_ary[j])
-
+    write_count = 0
+    for page in range(1, 20):
+        str_url = ""
+        if page > 1:
+            str_url = "pg" + str(page)
+        house_urls = get_house_urls(str_url)
+        print ("ready to get " + str(len(house_urls)) + " houses info from " + str_url)
+        for i, url in enumerate(house_urls):
+            print("getting info from  " + url + " ....")
+            data_ary = get_house_info(url)
+            if isinstance(data_ary, int):
+                print ("failed to fetch url " + url)
+                continue
+            data_ary.append(url)
+            print(write_count, "total " + str(len(house_urls)) + " writing data " + data_ary[0] + " to excel......")
+            for j in range(0, len(data_ary)):
+                ws.write(write_count, j, data_ary[j])
+            write_count = write_count + 1
     print ("save the excel file")
     wb.save("my_text2.xls")
-    for data in data_ary:
-        print (data)
-    write_to_excel(data)
+
     #for house_url in house_urls:
 
 
