@@ -10,17 +10,18 @@ import re
 origin_url = 'http://sz.lianjia.com/ershoufang/'
 def get_house_urls(url):
     url = origin_url + url
-    print (url)
     req = request.urlopen(url)
     src_code = req.read()
     soup = BeautifulSoup(src_code, 'lxml')
-    print(soup)
     tags = soup.find_all('div', {'class':'item'})
     url_list = []
 
     for tag in tags:
         #print(tag)
-        url_list.append(tag.a['href'])
+        try:
+            url_list.append(tag.a['href'])
+        except AttributeError as e:
+            continue
     print (" get_house_urls size " + str(len(url_list)))
     return url_list
 
@@ -37,8 +38,14 @@ def get_house_info(url):
         src_code = req.read()
     soup = BeautifulSoup(src_code, 'lxml')
     house_info = []
+    community_info = soup.find('div', {'class':'communityName'})
+    ## 小区名
+    try:
+        house_info.append(community_info.a.get_text())
+    except AttributeError as e:
+        print (e)
     # get price info
-    tag_price = soup.find('div', {'class':'price'})
+    #tag_price = soup.find('div', {'class':'price'})
     #print(tag_price)
     for tmp in soup.find_all("span"):
         if "class" in tmp.attrs:
@@ -94,12 +101,8 @@ if __name__ == '__main__':
             for j in range(0, len(data_ary)):
                 ws.write(write_count, j, data_ary[j])
             write_count = write_count + 1
+	wb.save("my_text2.xls")
     print ("save the excel file")
-    wb.save("my_text2.xls")
-
-    #for house_url in house_urls:
 
 
-#    for url in  house_urls:
-#        get_house_info(url)
 
