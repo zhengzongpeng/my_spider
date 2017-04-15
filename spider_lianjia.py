@@ -4,8 +4,10 @@ import xlrd
 from bs4 import BeautifulSoup
 from urllib import request
 from urllib import error
-import re
+from xlutils.copy import copy
+import time
 
+excel_file_name = "my_text2.xls"
 #url = 'http://bj.lianjia.com/chengjiao/101100989652.html'
 origin_url = 'http://sz.lianjia.com/ershoufang/'
 def get_house_urls(url):
@@ -81,17 +83,20 @@ def write_to_excel(data):
     return
 
 if __name__ == '__main__':
-    wb = xlwt.Workbook()
-    ws = wb.add_sheet("Test Sheet")
     write_count = 0
-    for page in range(1, 20):
+    for page in range(1, 10):
         str_url = ""
         if page > 1:
             str_url = "pg" + str(page)
+        time.sleep(8)
         house_urls = get_house_urls(str_url)
         print ("ready to get " + str(len(house_urls)) + " houses info from " + str_url)
+        rb = xlrd.open_workbook(excel_file_name)
+        wb = copy(rb)
+        ws = wb.add_sheet("page" + str(page))
         for i, url in enumerate(house_urls):
             print("getting info from  " + url + " ....")
+            time.sleep(8)
             data_ary = get_house_info(url)
             if isinstance(data_ary, int):
                 print ("failed to fetch url " + url)
@@ -101,7 +106,8 @@ if __name__ == '__main__':
             for j in range(0, len(data_ary)):
                 ws.write(write_count, j, data_ary[j])
             write_count = write_count + 1
-	wb.save("my_text2.xls")
+        wb.save("my_text2.xls")
+
     print ("save the excel file")
 
 
