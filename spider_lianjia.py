@@ -25,6 +25,8 @@ def get_house_urls(url):
         except AttributeError as e:
             continue
     print (" get_house_urls size " + str(len(url_list)))
+    if 0 == len(url_list):
+        print(soup.title)
     return url_list
 
 #print(soup.find('div', {'data-houseid':'101101106545'}))
@@ -46,6 +48,7 @@ def get_house_info(url):
         house_info.append(community_info.a.get_text())
     except AttributeError as e:
         print (e)
+        return e.code
     # get price info
     #tag_price = soup.find('div', {'class':'price'})
     #print(tag_price)
@@ -79,36 +82,57 @@ def get_house_info(url):
     #print (tag.find('span', {'class':'total'}))
     return house_info
 
-def write_to_excel(data):
-    return
+    # 写入指定excel 文件
+def write_to_excel(file_name, data_ary=[]):
+    rb = xlrd.open_workbook(excel_file_name)
+    exist_sheet_num = len(rb.sheets())
+    wb = copy(rb)
+    
+    # 找一个可写的sheet
+    if exist_sheet_num == 0:
+        ws = wb.add_sheet(exist_sheet_num)
+    else:    
+        for i in range(0, exist_sheet_num):
+            ws = wb.get_sheet(i)
+            if 5000 < len(ws.get_rows()):
+                if i == exist_sheet_num:
+                    ws = wb.add_sheet(exist_sheet_num)
+                continue
+            else:
+                break
+    # 写数据    
+    row_index_w = len(ws.get_rows())
+    for i in range(0, len(data_ary)):
+        ws.write(row_index_w, i, data_ary[i])
+    # 保存工作表    
+    wb.save(excel_file_name)
 
 if __name__ == '__main__':
     write_count = 0
-    for page in range(1, 10):
+    print( "begin to get info ...." );
+    for page in range(0, 50):
         str_url = ""
         if page > 1:
             str_url = "pg" + str(page)
-        time.sleep(8)
+        #time.sleep(8)
         house_urls = get_house_urls(str_url)
+        time.sleep(15)
+        ## 如果没有货的url， 主要是因为反爬虫起作用，直接跳出
+        if len(house_urls) == 0:
+            break
         print ("ready to get " + str(len(house_urls)) + " houses info from " + str_url)
-        rb = xlrd.open_workbook(excel_file_name)
-        wb = copy(rb)
-        ws = wb.add_sheet("page" + str(page))
         for i, url in enumerate(house_urls):
             print("getting info from  " + url + " ....")
-            time.sleep(8)
             data_ary = get_house_info(url)
             if isinstance(data_ary, int):
                 print ("failed to fetch url " + url)
                 continue
             data_ary.append(url)
             print(write_count, "total " + str(len(house_urls)) + " writing data " + data_ary[0] + " to excel......")
-            for j in range(0, len(data_ary)):
-                ws.write(write_count, j, data_ary[j])
+            write_to_excel("my_text2.xls", data_ary)
             write_count = write_count + 1
-        wb.save("my_text2.xls")
-
-    print ("save the excel file")
+            time.sleep(15)
+    print ("end to get info ....")
 
 
 
